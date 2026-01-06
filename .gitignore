@@ -1,0 +1,28 @@
+# Node
+node_modules/
+npm-debug.log*
+pnpm-debug.log*
+yarn-error.log*
+
+# Env
+.env
+.env.*
+
+# IDE
+.DS_Store
+.vscode/
+
+# Build outputs
+dist/
+build/
+
+# App storage and generated media
+storage/
+tmp-test/
+public/videos/
+public/qrcodes/
+
+# Logs
+logs/
+*.log
+

@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Football Shot Analysis</title>
+  <style>
+    body { background:#0a0e12; color:#e0e0e0; font-family: Arial, Helvetica, sans-serif; margin:0; }
+    header { padding:24px 32px; border-bottom:1px solid #263238; }
+    h1 { color:#00e676; margin:0 0 8px; font-size:28px; }
+    main { padding:24px 32px; display:flex; gap:32px; flex-wrap:wrap; }
+    section { background:#11161b; padding:16px; border-radius:8px; flex:1 1 420px; min-width:320px; }
+    label { display:block; margin-bottom:8px; }
+    input[type=file] { margin:8px 0 16px; }
+    button { background:#00e676; color:#082016; border:none; padding:10px 16px; border-radius:6px; cursor:pointer; }
+    pre { background:#0f1419; padding:12px; border-radius:6px; overflow:auto; max-height:280px; }
+    a { color:#90caf9; }
+    img { max-width:100%; height:auto; background:#fff; }
+    .row { display:flex; gap:16px; align-items:center; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Football Shot Analysis · Backend Demo</h1>
+    <div>Upload a video; the backend generates a summary poster and animated comparisons, merges them into the video, and returns a QR code link.</div>
+  </header>
+  <main>
+    <section>
+      <h3>Upload Video</h3>
+      <label>Select file (mp4)</label>
+      <input id="file" type="file" accept="video/mp4">
+      <div class="row">
+        <button id="btn">Analyze</button>
+        <span id="status"></span>
+      </div>
+      <h4>Result</h4>
+      <pre id="result"></pre>
+      <div id="analysisBox"></div>
+    </section>
+    <section>
+      <h3>Video and QR Code</h3>
+      <div id="videoLink"></div>
+      <div id="qrBox"></div>
+    </section>
+  </main>
+  <script>
+    const btn = document.getElementById('btn')
+    const fileInput = document.getElementById('file')
+    const status = document.getElementById('status')
+    const result = document.getElementById('result')
+    const videoLink = document.getElementById('videoLink')
+    const qrBox = document.getElementById('qrBox')
+    const analysisBox = document.getElementById('analysisBox')
+
+    async function analyze() {
+      const f = fileInput.files[0]
+      if (!f) { alert('Please select a video file'); return }
+      status.textContent = 'Uploading...'
+      const form = new FormData()
+      form.append('video', f)
+      try {
+        const resp = await fetch('/api/analyze', { method: 'POST', body: form })
+        const data = await resp.json()
+        result.textContent = JSON.stringify(data, null, 2)
+        status.textContent = 'Done'
+        const a = data.analysis || {}
+        analysisBox.innerHTML =
+          '<div>' +
+          '<h4>Shot Analysis</h4>' +
+          '<div><strong>Shot Speed:</strong> ' + (a.speed_mps != null ? Math.round(a.speed_mps) + ' m/s (' + Math.round(a.speed_kmh) + ' km/h)' : '-') + '</div>' +
+          '<div><strong>Contact Force:</strong> ' + (a.contact_force_N != null ? Math.round(a.contact_force_N) + ' N' : '-') + '</div>' +
+          '<div><strong>Posture Score:</strong> ' + (a.posture_score != null ? Math.round(a.posture_score) + '/100' : '-') + '</div>' +
+          '<div><strong>Posture Notes:</strong> ' + (a.posture_notes || '-') + '</div>' +
+          '<div><strong>Confidence:</strong> ' + (a.confidence != null ? a.confidence : '-') + '</div>' +
+          '</div>'
+        if (data.video_url) {
+          videoLink.innerHTML = '<a href="'+data.video_url+'" target="_blank">Open final video</a>'
+        }
+        if (data.qr_url) {
+          qrBox.innerHTML = '<img alt="QR Code" src="'+data.qr_url+'">'
+        }
+      } catch (e) {
+        status.textContent = 'Failed'
+        result.textContent = String(e)
+      }
+    }
+    btn.addEventListener('click', analyze)
+  </script>
+</body>
+</html>
