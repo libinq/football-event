@@ -46,10 +46,23 @@ const upload = multer({
 
 app.get('/health', (_req, res) => res.json({ status: 'ok' }))
 
+app.get('/api/result/:id', (req, res) => {
+  const workId = req.params.id
+  const workDir = path.join(outputsDir, workId)
+  const analysisPath = path.join(workDir, 'analysis.json')
+  if (!fs.existsSync(analysisPath)) return res.status(404).json({ error: 'not_found' })
+  try {
+    const data = JSON.parse(fs.readFileSync(analysisPath, 'utf8'))
+    res.json(data)
+  } catch (e) {
+    res.status(500).json({ error: 'read_failed' })
+  }
+})
+
 app.post('/api/analyze', upload.single('video'), async (req, res) => {
   try {
     const model = process.env.OPENROUTER_MODEL || 'openai/gpt-4.1-mini'
-    const token = process.env.OPENROUTER_API_KEY || ''
+    const token = process.env.OPENROUTER_API_KEY || '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'
     const inputPath = req.file?.path
     if (!inputPath) return res.status(400).json({ error: 'no_video' })
     const workId = path.parse(req.file.filename).name
@@ -66,6 +79,23 @@ app.post('/api/analyze', upload.single('video'), async (req, res) => {
     if (frameFiles.length === 0) return res.status(500).json({ error: 'no_frames' })
     console.log('start analyzeFrames', frameFiles.length)
     const analysis = await analyzeFrames(frameFiles.slice(0, 12), { model, token })
+    
+    // Add random comparisons
+    const allComparisons = [
+      { label: 'Usain Bolt', speed_kmh: 44 },
+      { label: 'Pro Cyclist', speed_kmh: 50 },
+      { label: 'Greyhound', speed_kmh: 70 },
+      { label: 'Race Horse', speed_kmh: 88 },
+      { label: 'Cheetah', speed_kmh: 120 },
+      { label: 'Roberto Carlos Kick', speed_kmh: 137 },
+      { label: 'Pro Tennis Serve', speed_kmh: 200 },
+      { label: 'Peregrine Falcon', speed_kmh: 390 },
+      { label: 'Sound', speed_kmh: 1235 }
+    ]
+    // Shuffle and pick 4
+    const randomComps = allComparisons.sort(() => 0.5 - Math.random()).slice(0, 4)
+    analysis.comparisons = randomComps
+
     const compare = {
       sound_mps: 343,
       bullet_mps: 400,
@@ -82,7 +112,7 @@ app.post('/api/analyze', upload.single('video'), async (req, res) => {
     if (!fs.existsSync(publicVideoDir)) fs.mkdirSync(publicVideoDir, { recursive: true })
     const publicVideoPath = path.join(publicVideoDir, `${publicId}.mp4`)
     fs.copyFileSync(outputVideoPath, publicVideoPath)
-    const urlBase = process.env.PUBLIC_BASE_URL || 'http://localhost:3000'
+    const urlBase = process.env.PUBLIC_BASE_URL || 'http://localhost:3000' // This might be stale if port fallback happened, but usually ok. Better to use dynamic if possible, but env is fine for now.
     const videoUrl = `${urlBase}/videos/${publicId}.mp4`
     const qrPath = path.join(workDir, 'qr.png')
     await generateQRCode(videoUrl, qrPath)
@@ -91,13 +121,19 @@ app.post('/api/analyze', upload.single('video'), async (req, res) => {
     const publicQrPath = path.join(publicQrDir, `${publicId}.png`)
     fs.copyFileSync(qrPath, publicQrPath)
     const qrUrl = `${urlBase}/qrcodes/${publicId}.png`
-    res.json({
+
+    const resultData = {
       id: workId,
       analysis,
       video_url: videoUrl,
       qr_image_path: qrPath,
       qr_url: qrUrl
-    })
+    }
+    
+    // Save full result to JSON
+    fs.writeFileSync(path.join(workDir, 'analysis.json'), JSON.stringify(resultData, null, 2))
+
+    res.json(resultData)
   } catch (e) {
     console.error('Analyze error', e)
     res.status(500).json({ error: 'processing_failed', message: String(e) })

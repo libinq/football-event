@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Shot Analysis Report</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg-color: #0f172a;
+      --card-bg: #1e293b;
+      --accent: #10b981;
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+    }
+    body {
+      background: var(--bg-color);
+      color: var(--text);
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    header {
+      margin-bottom: 32px;
+      border-bottom: 1px solid #334155;
+      padding-bottom: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    h1 { margin: 0; font-size: 2rem; color: var(--accent); }
+    .btn {
+      background: var(--accent);
+      color: #000;
+      text-decoration: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    /* Grid Layout */
+    .dashboard {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+    }
+    @media (max-width: 900px) {
+      .dashboard { grid-template-columns: 1fr; }
+    }
+
+    /* Cards */
+    .card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+    .card h2 { margin-top: 0; font-size: 1.25rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .stat-box {
+      background: rgba(0,0,0,0.2);
+      padding: 16px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    .stat-value { font-size: 2rem; font-weight: 700; color: var(--accent); }
+    .stat-label { font-size: 0.875rem; color: var(--text-muted); margin-top: 4px; }
+
+    /* Comparison Section */
+    .comparison-chart-container {
+      position: relative;
+      height: 300px;
+      width: 100%;
+    }
+
+    /* Similarity Section */
+    .player-match {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .player-name {
+      font-size: 2.5rem;
+      font-weight: 800;
+      background: linear-gradient(45deg, #10b981, #3b82f6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin: 16px 0;
+    }
+    .player-img {
+      width: 100%;
+      max-width: 300px;
+      height: auto;
+      border-radius: 12px;
+      margin: 0 auto;
+      display: block;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+    }
+    .player-desc {
+      color: var(--text-muted);
+      margin-top: 16px;
+      line-height: 1.6;
+      font-size: 1.1rem;
+    }
+
+    /* Video & QR */
+    .video-container {
+      margin-top: 24px;
+    }
+    video { width: 100%; border-radius: 8px; background: #000; }
+    .qr-container {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-top: 16px;
+      background: rgba(255,255,255,0.05);
+      padding: 12px;
+      border-radius: 8px;
+    }
+    .qr-container img { width: 80px; height: 80px; border-radius: 4px; }
+    .qr-text { font-size: 0.9rem; color: var(--text-muted); }
+    
+    .loading {
+      text-align: center;
+      padding: 100px;
+      font-size: 1.5rem;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Football Analysis Report</h1>
+      <a href="/" class="btn">New Analysis</a>
+    </header>
+
+    <div id="loading" class="loading">Loading Analysis Results...</div>
+
+    <div id="content" class="dashboard" style="display:none">
+      <!-- Left Column: Data & Charts -->
+      <div class="col-left">
+        <!-- Key Metrics -->
+        <div class="card">
+          <h2>Performance Metrics</h2>
+          <div class="stats-grid">
+            <div class="stat-box">
+              <div class="stat-value" id="speedVal">-</div>
+              <div class="stat-label">Shot Speed (km/h)</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-value" id="forceVal">-</div>
+              <div class="stat-label">Contact Force (N)</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-value" id="scoreVal">-</div>
+              <div class="stat-label">Posture Score</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-value" id="confVal">-</div>
+              <div class="stat-label">Confidence</div>
+            </div>
+          </div>
+          <div style="margin-top: 16px; font-style: italic; color: #cbd5e1;" id="postureNotes"></div>
+        </div>
+
+        <!-- Speed Comparison Chart -->
+        <div class="card">
+          <h2>Speed Comparison</h2>
+          <div class="comparison-chart-container">
+            <canvas id="speedChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Posture Chart -->
+        <div class="card">
+          <h2>Posture Analysis</h2>
+          <div style="height:250px; display:flex; justify-content:center;">
+             <canvas id="postureChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Visuals & Match -->
+      <div class="col-right">
+        <!-- Player Similarity -->
+        <div class="card">
+          <h2>Pro Player Match</h2>
+          <div class="player-match">
+            <div class="player-name" id="playerName">Unknown</div>
+            <!-- Placeholder image logic in JS -->
+            <img id="playerImg" class="player-img" src="" alt="Player Match">
+            <div class="player-desc" id="playerReason"></div>
+          </div>
+        </div>
+
+        <!-- Final Video -->
+        <div class="card">
+          <h2>Final Result Video</h2>
+          <div class="video-container">
+            <video id="finalVideo" controls autoplay loop muted playsinline></video>
+          </div>
+          <div class="qr-container">
+            <img id="qrImg" src="" alt="QR">
+            <div class="qr-text">
+              Scan to share this analysis.<br>
+              <a id="videoLink" href="#" target="_blank" style="color:#10b981">Direct Link</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get('id');
+
+    // Player images map (simple fallback)
+    const playerImages = {
+      'messi': 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Lionel_Messi_20180626.jpg/400px-Lionel_Messi_20180626.jpg',
+      'ronaldo': 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Cristiano_Ronaldo_2018.jpg/400px-Cristiano_Ronaldo_2018.jpg',
+      'rooney': 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/Wayne_Rooney_Euro_2012_vs_Italy_2.jpg/400px-Wayne_Rooney_Euro_2012_vs_Italy_2.jpg',
+      'beckham': 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/22/David_Beckham_2011.jpg/400px-David_Beckham_2011.jpg',
+      'haaland': 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/07/Erling_Haaland_2023.jpg/400px-Erling_Haaland_2023.jpg',
+      'default': 'https://placehold.co/600x400/1e293b/10b981?text=Pro+Player+Match'
+    };
+
+    function getPlayerImage(name) {
+      if (!name) return playerImages.default;
+      const lower = name.toLowerCase();
+      if (lower.includes('messi')) return playerImages.messi;
+      if (lower.includes('ronaldo')) return playerImages.ronaldo;
+      if (lower.includes('rooney')) return playerImages.rooney;
+      if (lower.includes('beckham')) return playerImages.beckham;
+      if (lower.includes('haaland')) return playerImages.haaland;
+      return playerImages.default;
+    }
+
+    async function loadData() {
+      if (!id) {
+        document.getElementById('loading').textContent = 'No Analysis ID provided.';
+        return;
+      }
+      try {
+        const res = await fetch(`/api/result/${id}`);
+        if (!res.ok) throw new Error('Analysis not found');
+        const data = await res.json();
+        render(data);
+      } catch (e) {
+        document.getElementById('loading').textContent = 'Error loading results: ' + e.message;
+      }
+    }
+
+    function render(data) {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('content').style.display = 'grid';
+
+      const a = data.analysis;
+      
+      // Metrics
+      document.getElementById('speedVal').textContent = Math.round(a.speed_kmh || 0);
+      document.getElementById('forceVal').textContent = Math.round(a.contact_force_N || 0);
+      document.getElementById('scoreVal').textContent = a.posture_score || 0;
+      document.getElementById('confVal').textContent = a.confidence || '-';
+      document.getElementById('postureNotes').textContent = '"' + (a.posture_notes || 'No notes') + '"';
+
+      // Player Match
+      const pName = a.similar_player || 'Unknown Pro';
+      document.getElementById('playerName').textContent = pName;
+      document.getElementById('playerReason').textContent = a.similarity_reason || 'No specific similarity notes provided.';
+      document.getElementById('playerImg').src = getPlayerImage(pName);
+
+      // Video
+      if (data.video_url) {
+        const v = document.getElementById('finalVideo');
+        v.src = data.video_url;
+        document.getElementById('videoLink').href = data.video_url;
+      }
+      if (data.qr_url) {
+        document.getElementById('qrImg').src = data.qr_url;
+      }
+
+      // Charts
+      renderSpeedChart(a.speed_kmh, a.comparisons || []);
+      renderPostureChart(a.posture_score);
+    }
+
+    function renderSpeedChart(userSpeed, comparisons) {
+      const ctx = document.getElementById('speedChart').getContext('2d');
+      // Sort comparisons by speed
+      const allData = [...comparisons, { label: 'YOU', speed_kmh: userSpeed, isUser: true }];
+      allData.sort((a, b) => a.speed_kmh - b.speed_kmh);
+
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: allData.map(d => d.label),
+          datasets: [{
+            label: 'Speed (km/h)',
+            data: allData.map(d => d.speed_kmh),
+            backgroundColor: allData.map(d => d.isUser ? '#10b981' : '#334155'),
+            borderRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              grid: { color: '#334155' },
+              ticks: { color: '#94a3b8' }
+            },
+            x: {
+              ticks: { color: '#94a3b8' }
+            }
+          }
+        }
+      });
+    }
+
+    function renderPostureChart(score) {
+      const ctx = document.getElementById('postureChart').getContext('2d');
+      new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Score', 'Remaining'],
+          datasets: [{
+            data: [score, 100 - score],
+            backgroundColor: ['#10b981', '#1e293b'],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { display: false },
+            title: {
+              display: true,
+              text: score + ' / 100',
+              color: '#10b981',
+              font: { size: 24 }
+            }
+          }
+        }
+      });
+    }
+
+    loadData();
+  </script>
+</body>
+</html>

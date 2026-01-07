@@ -61,23 +61,11 @@
       try {
         const resp = await fetch('/api/analyze', { method: 'POST', body: form })
         const data = await resp.json()
-        result.textContent = JSON.stringify(data, null, 2)
-        status.textContent = 'Done'
-        const a = data.analysis || {}
-        analysisBox.innerHTML =
-          '<div>' +
-          '<h4>Shot Analysis</h4>' +
-          '<div><strong>Shot Speed:</strong> ' + (a.speed_mps != null ? Math.round(a.speed_mps) + ' m/s (' + Math.round(a.speed_kmh) + ' km/h)' : '-') + '</div>' +
-          '<div><strong>Contact Force:</strong> ' + (a.contact_force_N != null ? Math.round(a.contact_force_N) + ' N' : '-') + '</div>' +
-          '<div><strong>Posture Score:</strong> ' + (a.posture_score != null ? Math.round(a.posture_score) + '/100' : '-') + '</div>' +
-          '<div><strong>Posture Notes:</strong> ' + (a.posture_notes || '-') + '</div>' +
-          '<div><strong>Confidence:</strong> ' + (a.confidence != null ? a.confidence : '-') + '</div>' +
-          '</div>'
-        if (data.video_url) {
-          videoLink.innerHTML = '<a href="'+data.video_url+'" target="_blank">Open final video</a>'
-        }
-        if (data.qr_url) {
-          qrBox.innerHTML = '<img alt="QR Code" src="'+data.qr_url+'">'
+        if (data.id) {
+          window.location.href = '/result.html?id=' + data.id
+        } else {
+          result.textContent = JSON.stringify(data, null, 2)
+          status.textContent = 'Done (No ID returned)'
         }
       } catch (e) {
         status.textContent = 'Failed'
