@@ -52,6 +52,19 @@
     const qrBox = document.getElementById('qrBox')
     const analysisBox = document.getElementById('analysisBox')
 
+    function getApiBase() {
+      const p = new URLSearchParams(location.search).get('api')
+      if (p) {
+        try { localStorage.setItem('API_BASE_URL', p) } catch {}
+        return p
+      }
+      try {
+        const s = localStorage.getItem('API_BASE_URL')
+        if (s) return s
+      } catch {}
+      return ''
+    }
+
     async function analyze() {
       const f = fileInput.files[0]
       if (!f) { alert('Please select a video file'); return }
@@ -59,10 +72,13 @@
       const form = new FormData()
       form.append('video', f)
       try {
-        const resp = await fetch('/api/analyze', { method: 'POST', body: form })
+        const base = getApiBase()
+        const url = (base ? base : '') + '/api/analyze'
+        const resp = await fetch(url, { method: 'POST', body: form })
         const data = await resp.json()
         if (data.id) {
-          window.location.href = '/result.html?id=' + data.id
+          const next = '/result.html?id=' + data.id + (base ? '&api=' + encodeURIComponent(base) : '')
+          window.location.href = next
         } else {
           result.textContent = JSON.stringify(data, null, 2)
           status.textContent = 'Done (No ID returned)'

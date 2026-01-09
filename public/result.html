@@ -191,6 +191,10 @@
           <div style="height:250px; display:flex; justify-content:center;">
              <canvas id="postureChart"></canvas>
           </div>
+          <div style="margin-top:16px; padding:14px; border-radius:10px; background:rgba(255,255,255,0.04); color:#cbd5e1; line-height:1.7;">
+            <div style="font-weight:700; color:#10b981; margin-bottom:6px;">Summary</div>
+            <div id="postureSummary">-</div>
+          </div>
         </div>
       </div>
 
@@ -228,6 +232,19 @@
   <script>
     const params = new URLSearchParams(window.location.search);
     const id = params.get('id');
+    const apiParam = params.get('api');
+    function getApiBase() {
+      if (apiParam) {
+        try { localStorage.setItem('API_BASE_URL', apiParam) } catch {}
+        return apiParam;
+      }
+      try {
+        const s = localStorage.getItem('API_BASE_URL');
+        if (s) return s;
+      } catch {}
+      return '';
+    }
+    const API_BASE = getApiBase();
 
     // Player images map (simple fallback)
     const playerImages = {
@@ -256,7 +273,8 @@
         return;
       }
       try {
-        const res = await fetch(`/api/result/${id}`);
+        const url = (API_BASE ? API_BASE : '') + `/api/result/${id}`;
+        const res = await fetch(url);
         if (!res.ok) throw new Error('Analysis not found');
         const data = await res.json();
         render(data);
@@ -277,6 +295,7 @@
       document.getElementById('scoreVal').textContent = a.posture_score || 0;
       document.getElementById('confVal').textContent = a.confidence || '-';
       document.getElementById('postureNotes').textContent = '"' + (a.posture_notes || 'No notes') + '"';
+      document.getElementById('postureSummary').textContent = a.posture_summary || '整体动作很不错：节奏感与身体稳定性都在线。保持优势的同时，建议重点关注支撑脚落点与摆腿顺序的连贯性，让发力更集中、命中率更高。继续保持自信，你已经具备很强的射门基础。';
 
       // Player Match
       const pName = a.similar_player || 'Unknown Pro';

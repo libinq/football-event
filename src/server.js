@@ -80,7 +80,6 @@ app.post('/api/analyze', upload.single('video'), async (req, res) => {
     console.log('start analyzeFrames', frameFiles.length)
     const analysis = await analyzeFrames(frameFiles.slice(0, 12), { model, token })
     
-    // Add random comparisons
     const allComparisons = [
       { label: 'Usain Bolt', speed_kmh: 44 },
       { label: 'Pro Cyclist', speed_kmh: 50 },
@@ -92,7 +91,6 @@ app.post('/api/analyze', upload.single('video'), async (req, res) => {
       { label: 'Peregrine Falcon', speed_kmh: 390 },
       { label: 'Sound', speed_kmh: 1235 }
     ]
-    // Shuffle and pick 4
     const randomComps = allComparisons.sort(() => 0.5 - Math.random()).slice(0, 4)
     analysis.comparisons = randomComps
 
@@ -112,7 +110,7 @@ app.post('/api/analyze', upload.single('video'), async (req, res) => {
     if (!fs.existsSync(publicVideoDir)) fs.mkdirSync(publicVideoDir, { recursive: true })
     const publicVideoPath = path.join(publicVideoDir, `${publicId}.mp4`)
     fs.copyFileSync(outputVideoPath, publicVideoPath)
-    const urlBase = process.env.PUBLIC_BASE_URL || 'http://localhost:3000' // This might be stale if port fallback happened, but usually ok. Better to use dynamic if possible, but env is fine for now.
+    const urlBase = process.env.PUBLIC_BASE_URL || 'http://localhost:3000'
     const videoUrl = `${urlBase}/videos/${publicId}.mp4`
     const qrPath = path.join(workDir, 'qr.png')
     await generateQRCode(videoUrl, qrPath)
@@ -130,7 +128,6 @@ app.post('/api/analyze', upload.single('video'), async (req, res) => {
       qr_url: qrUrl
     }
     
-    // Save full result to JSON
     fs.writeFileSync(path.join(workDir, 'analysis.json'), JSON.stringify(resultData, null, 2))
 
     res.json(resultData)
