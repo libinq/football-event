@@ -5,52 +5,205 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Football Shot Analysis</title>
   <style>
-    body { background:#0a0e12; color:#e0e0e0; font-family: Arial, Helvetica, sans-serif; margin:0; }
-    header { padding:24px 32px; border-bottom:1px solid #263238; }
-    h1 { color:#00e676; margin:0 0 8px; font-size:28px; }
-    main { padding:24px 32px; display:flex; gap:32px; flex-wrap:wrap; }
-    section { background:#11161b; padding:16px; border-radius:8px; flex:1 1 420px; min-width:320px; }
-    label { display:block; margin-bottom:8px; }
-    input[type=file] { margin:8px 0 16px; }
-    button { background:#00e676; color:#082016; border:none; padding:10px 16px; border-radius:6px; cursor:pointer; }
-    pre { background:#0f1419; padding:12px; border-radius:6px; overflow:auto; max-height:280px; }
-    a { color:#90caf9; }
-    img { max-width:100%; height:auto; background:#fff; }
-    .row { display:flex; gap:16px; align-items:center; }
+    :root {
+      --bg-gradient: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+      --glass-bg: rgba(255, 255, 255, 0.1);
+      --glass-border: rgba(255, 255, 255, 0.2);
+      --text-main: #ffffff;
+      --text-secondary: #cbd5e1;
+      --accent: #34d399;
+    }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg-gradient);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      backdrop-filter: blur(20px);
+    }
+    header {
+      padding: 32px;
+      text-align: center;
+      background: rgba(0, 0, 0, 0.2);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--glass-border);
+    }
+    h1 {
+      margin: 0 0 12px;
+      font-size: 2.5rem;
+      font-weight: 700;
+      background: linear-gradient(to right, #34d399, #3b82f6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .subtitle {
+      color: var(--text-secondary);
+      font-size: 1.1rem;
+      max-width: 600px;
+      margin: 0 auto;
+      line-height: 1.5;
+    }
+    main {
+      padding: 40px 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      gap: 40px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    section {
+      background: var(--glass-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--glass-border);
+      border-radius: 24px;
+      padding: 32px;
+      flex: 1 1 450px;
+      max-width: 600px;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+      transition: transform 0.2s ease;
+    }
+    section:hover {
+      transform: translateY(-2px);
+    }
+    h3 {
+      margin-top: 0;
+      font-size: 1.5rem;
+      color: var(--accent);
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--glass-border);
+      padding-bottom: 12px;
+    }
+    .upload-area {
+      border: 2px dashed var(--glass-border);
+      border-radius: 16px;
+      padding: 32px;
+      text-align: center;
+      margin-bottom: 24px;
+      transition: all 0.3s ease;
+      background: rgba(0,0,0,0.1);
+    }
+    .upload-area:hover {
+      border-color: var(--accent);
+      background: rgba(52, 211, 153, 0.05);
+    }
+    input[type=file] {
+      display: none;
+    }
+    .file-label {
+      display: inline-block;
+      padding: 12px 24px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background 0.3s;
+    }
+    .file-label:hover {
+      background: rgba(255,255,255,0.2);
+    }
+    .selected-file {
+      margin-top: 12px;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+    button {
+      width: 100%;
+      background: linear-gradient(135deg, #34d399, #059669);
+      color: #fff;
+      border: none;
+      padding: 16px;
+      border-radius: 12px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+    }
+    button:active {
+      transform: translateY(1px);
+    }
+    pre {
+      background: rgba(0,0,0,0.3);
+      padding: 16px;
+      border-radius: 12px;
+      overflow: auto;
+      max-height: 300px;
+      color: #a7f3d0;
+      font-family: 'SF Mono', Consolas, monospace;
+      font-size: 0.9rem;
+    }
+    #status {
+      display: block;
+      text-align: center;
+      margin-top: 16px;
+      font-weight: 500;
+      min-height: 24px;
+    }
+    a {
+      color: #60a5fa;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+    #qrBox img {
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
   </style>
 </head>
 <body>
   <header>
-    <h1>Football Shot Analysis · Backend Demo</h1>
-    <div>Upload a video; the backend generates a summary poster and animated comparisons, merges them into the video, and returns a QR code link.</div>
+    <h1>Football Shot Analysis</h1>
+    <div class="subtitle">AI-powered backend demo: Upload your shot video to generate professional posters, animated comparisons, and detailed performance metrics.</div>
   </header>
   <main>
     <section>
       <h3>Upload Video</h3>
-      <label>Select file (mp4)</label>
-      <input id="file" type="file" accept="video/mp4">
-      <div class="row">
-        <button id="btn">Analyze</button>
-        <span id="status"></span>
+      <div class="upload-area" id="dropArea">
+        <label for="file" class="file-label">Choose Video File</label>
+        <input id="file" type="file" accept="video/mp4">
+        <div id="fileName" class="selected-file">No file selected</div>
       </div>
-      <h4>Result</h4>
-      <pre id="result"></pre>
-      <div id="analysisBox"></div>
+      
+      <button id="btn">Analyze Shot</button>
+      <div id="status"></div>
+      
+      <h4 style="margin: 24px 0 12px; color: var(--text-secondary);">Raw Result</h4>
+      <pre id="result">Waiting for analysis...</pre>
     </section>
+    
     <section>
-      <h3>Video and QR Code</h3>
-      <div id="videoLink"></div>
-      <div id="qrBox"></div>
+      <h3>Results & Share</h3>
+      <div style="text-align: center; color: var(--text-secondary); margin-bottom: 24px;">
+        Generate a QR code and shareable link for your analysis report.
+      </div>
+      <div id="videoLink" style="margin-bottom: 24px; word-break: break-all;"></div>
+      <div id="qrBox" style="text-align: center;"></div>
     </section>
   </main>
   <script>
     const btn = document.getElementById('btn')
     const fileInput = document.getElementById('file')
+    const fileName = document.getElementById('fileName')
     const status = document.getElementById('status')
     const result = document.getElementById('result')
     const videoLink = document.getElementById('videoLink')
     const qrBox = document.getElementById('qrBox')
-    const analysisBox = document.getElementById('analysisBox')
+
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files[0]) {
+        fileName.textContent = e.target.files[0].name;
+      } else {
+        fileName.textContent = 'No file selected';
+      }
+    });
 
     function getApiBase() {
       const p = new URLSearchParams(location.search).get('api')
