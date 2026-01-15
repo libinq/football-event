@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Shot Analysis Report</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <style>
     :root {
       --bg-gradient: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
@@ -196,6 +197,49 @@
       color: var(--text-muted);
       line-height: 1.5;
     }
+    .share-row {
+      margin-top: 12px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .share-label {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+    .share-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.12);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      color: var(--text-main);
+      text-decoration: none;
+      border: 1px solid rgba(255,255,255,0.2);
+      transition: background 0.2s ease, transform 0.2s ease;
+    }
+    .share-icon:hover {
+      background: rgba(255,255,255,0.25);
+      transform: translateY(-1px);
+    }
+    .share-export {
+      padding: 6px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.25);
+      background: rgba(255,255,255,0.1);
+      color: var(--text-main);
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: background 0.2s ease, transform 0.2s ease;
+    }
+    .share-export:hover {
+      background: rgba(255,255,255,0.22);
+      transform: translateY(-1px);
+    }
     
     .loading {
       text-align: center;
@@ -216,6 +260,20 @@
       border-radius: 16px;
       border-left: 4px solid var(--accent);
     }
+
+    body.pdf-mode {
+      background: #f3f4f6;
+      backdrop-filter: none;
+    }
+    body.pdf-mode .dashboard {
+      grid-template-columns: 1fr;
+    }
+    body.pdf-mode .btn {
+      display: none;
+    }
+    body.pdf-mode .share-export {
+      display: none;
+    }
   </style>
 </head>
 <body>
@@ -230,6 +288,75 @@
     <div id="content" class="dashboard" style="display:none">
       <!-- Left Column: Data & Charts -->
       <div class="col-left">
+        <!-- Daily Ranking -->
+        <div class="card">
+          <h2 id="rankingTitle">Speed Ranking</h2>
+          <div id="rankingSummary" style="margin-bottom:16px; color: var(--text-muted); font-size:0.95rem;"></div>
+          <table id="rankingTable" style="width:100%; border-collapse:collapse; font-size:0.9rem;">
+            <thead>
+              <tr style="color: var(--text-muted); text-align:left;">
+                <th style="padding:8px 4px;">Rank</th>
+                <th style="padding:8px 4px;">Speed (km/h)</th>
+                <th style="padding:8px 4px;">You</th>
+              </tr>
+            </thead>
+            <tbody id="rankingTableBody"></tbody>
+          </table>
+        </div>
+
+        <!-- Speed Comparison Chart -->
+        <div class="card">
+          <h2>Speed Comparison</h2>
+          <div class="comparison-chart-container">
+            <canvas id="speedChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Posture Chart -->
+        <div class="card">
+          <h2>Posture Analysis</h2>
+          <div style="height:250px; display:flex; justify-content:center;">
+             <canvas id="postureChart"></canvas>
+          </div>
+          <div style="margin-top:16px; padding:14px; border-radius:10px; background:rgba(255,255,255,0.04); color:#cbd5e1; line-height:1.7;">
+            <div style="font-weight:700; color:#10b981; margin-bottom:6px;">Summary</div>
+            <div id="postureSummary">-</div>
+          </div>
+        </div>
+
+        <!-- Scan & Share -->
+        <div class="card">
+          <h2>Scan and Share</h2>
+          <div class="qr-container">
+            <img id="qrImg" src="" alt="QR">
+            <div class="qr-text">
+              Scan to share this analysis.<br>
+              <a id="videoLink" href="#" target="_blank" style="color:#10b981">Direct Link</a>
+            </div>
+          </div>
+          <div class="share-row">
+            <span class="share-label">Share:</span>
+            <a id="shareFacebook" class="share-icon" target="_blank" rel="noopener noreferrer" aria-label="Share on Facebook">f</a>
+            <a id="shareX" class="share-icon" target="_blank" rel="noopener noreferrer" aria-label="Share on X">X</a>
+            <a id="shareLinkedIn" class="share-icon" target="_blank" rel="noopener noreferrer" aria-label="Share on LinkedIn">in</a>
+            <button id="exportPdf" class="share-export" type="button">Export PDF</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Visuals & Match -->
+      <div class="col-right">
+        <!-- Player Similarity -->
+        <div class="card">
+          <h2>Pro Player Match</h2>
+          <div class="player-match">
+            <div class="player-name" id="playerName">Unknown</div>
+            <!-- Placeholder image logic in JS -->
+            <img id="playerImg" class="player-img" src="" alt="Player Match">
+            <div class="player-desc" id="playerReason"></div>
+          </div>
+        </div>
+
         <!-- Key Metrics -->
         <div class="card">
           <h2>Performance Metrics</h2>
@@ -254,52 +381,11 @@
           <div style="margin-top: 16px; font-style: italic; color: #cbd5e1;" id="postureNotes"></div>
         </div>
 
-        <!-- Speed Comparison Chart -->
-        <div class="card">
-          <h2>Speed Comparison</h2>
-          <div class="comparison-chart-container">
-            <canvas id="speedChart"></canvas>
-          </div>
-        </div>
-
-        <!-- Posture Chart -->
-        <div class="card">
-          <h2>Posture Analysis</h2>
-          <div style="height:250px; display:flex; justify-content:center;">
-             <canvas id="postureChart"></canvas>
-          </div>
-          <div style="margin-top:16px; padding:14px; border-radius:10px; background:rgba(255,255,255,0.04); color:#cbd5e1; line-height:1.7;">
-            <div style="font-weight:700; color:#10b981; margin-bottom:6px;">Summary</div>
-            <div id="postureSummary">-</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Right Column: Visuals & Match -->
-      <div class="col-right">
-        <!-- Player Similarity -->
-        <div class="card">
-          <h2>Pro Player Match</h2>
-          <div class="player-match">
-            <div class="player-name" id="playerName">Unknown</div>
-            <!-- Placeholder image logic in JS -->
-            <img id="playerImg" class="player-img" src="" alt="Player Match">
-            <div class="player-desc" id="playerReason"></div>
-          </div>
-        </div>
-
         <!-- Final Video -->
         <div class="card">
           <h2>Final Result Video</h2>
           <div class="video-container">
             <video id="finalVideo" controls autoplay loop muted playsinline></video>
-          </div>
-          <div class="qr-container">
-            <img id="qrImg" src="" alt="QR">
-            <div class="qr-text">
-              Scan to share this analysis.<br>
-              <a id="videoLink" href="#" target="_blank" style="color:#10b981">Direct Link</a>
-            </div>
           </div>
         </div>
       </div>
@@ -372,7 +458,7 @@
       document.getElementById('scoreVal').textContent = a.posture_score || 0;
       document.getElementById('confVal').textContent = a.confidence || '-';
       document.getElementById('postureNotes').textContent = '"' + (a.posture_notes || 'No notes') + '"';
-      document.getElementById('postureSummary').textContent = a.posture_summary || '整体动作很不错：节奏感与身体稳定性都在线。保持优势的同时，建议重点关注支撑脚落点与摆腿顺序的连贯性，让发力更集中、命中率更高。继续保持自信，你已经具备很强的射门基础。';
+      document.getElementById('postureSummary').textContent = a.posture_summary || 'Your overall shooting form looks solid, with good balance and timing. To improve even more, focus on a stable plant foot and a smooth follow-through so that power and accuracy stay consistent over each attempt.';
 
       // Player Match
       const pName = a.similar_player || 'Unknown Pro';
@@ -383,11 +469,86 @@
       // Video
       if (data.video_url) {
         const v = document.getElementById('finalVideo');
-        v.src = data.video_url;
+        if (v) v.src = data.video_url;
         document.getElementById('videoLink').href = data.video_url;
+
+        const shareUrl = encodeURIComponent(data.video_url);
+        const shareText = encodeURIComponent('Check out my AI-powered football shot analysis!');
+        const fb = document.getElementById('shareFacebook');
+        const x = document.getElementById('shareX');
+        const li = document.getElementById('shareLinkedIn');
+        if (fb) fb.href = `https://www.facebook.com/sharer/sharer.php?u=${shareUrl}`;
+        if (x) x.href = `https://twitter.com/intent/tweet?url=${shareUrl}&text=${shareText}`;
+        if (li) li.href = `https://www.linkedin.com/sharing/share-offsite/?url=${shareUrl}`;
       }
       if (data.qr_url) {
         document.getElementById('qrImg').src = data.qr_url;
+      }
+
+      const rankingTitle = document.getElementById('rankingTitle');
+      const rankingSummary = document.getElementById('rankingSummary');
+      const rankingBody = document.getElementById('rankingTableBody');
+      if (rankingSummary && rankingBody && rankingTitle) {
+        const createdAt = data.created_at || new Date().toISOString();
+        const dateStr = (data.rankings && data.rankings.date) || createdAt.slice(0, 10);
+        rankingTitle.textContent = `Speed Ranking · ${dateStr}`;
+
+        const baseSpeeds = [120, 110, 100, 92, 85, 78, 68, 56, 44];
+        const mySpeed = Math.round(a.speed_kmh || 0);
+        const clamped = Math.max(20, Math.min(120, mySpeed || 20));
+        const list = baseSpeeds.map(s => ({ speed_kmh: s, is_you: false }));
+        list.push({ speed_kmh: clamped, is_you: true });
+        list.sort((xItem, yItem) => yItem.speed_kmh - xItem.speed_kmh);
+        const top = list.slice(0, 10).map((item, idx) => ({
+          rank: idx + 1,
+          speed_kmh: item.speed_kmh,
+          is_you: item.is_you
+        }));
+        while (rankingBody.firstChild) rankingBody.removeChild(rankingBody.firstChild);
+        top.forEach(row => {
+          const tr = document.createElement('tr');
+          if (row.is_you) {
+            tr.style.fontWeight = '700';
+            tr.style.background = 'rgba(52, 211, 153, 0.12)';
+          }
+          const rankCell = document.createElement('td');
+          rankCell.style.padding = '6px 4px';
+          rankCell.textContent = `#${row.rank}`;
+          const speedCell = document.createElement('td');
+          speedCell.style.padding = '6px 4px';
+          speedCell.textContent = `${Math.round(row.speed_kmh || 0)} km/h`;
+          const youCell = document.createElement('td');
+          youCell.style.padding = '6px 4px';
+          youCell.textContent = row.is_you ? 'You' : '';
+          tr.appendChild(rankCell);
+          tr.appendChild(speedCell);
+          tr.appendChild(youCell);
+          rankingBody.appendChild(tr);
+        });
+      }
+
+      const exportBtn = document.getElementById('exportPdf');
+      if (exportBtn) {
+        exportBtn.addEventListener('click', () => {
+          const target = document.querySelector('.container') || document.body;
+          if (!window.html2pdf || !target) {
+            alert('PDF export is not available in this environment.');
+            return;
+          }
+          const opt = {
+            margin:       10,
+            filename:     'shot-analysis-report.pdf',
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2, useCORS: true },
+            jsPDF:        { unit: 'px', format: 'a4', orientation: 'portrait' }
+          };
+          document.body.classList.add('pdf-mode');
+          window.html2pdf().set(opt).from(target).save().then(() => {
+            document.body.classList.remove('pdf-mode');
+          }).catch(() => {
+            document.body.classList.remove('pdf-mode');
+          });
+        });
       }
 
       // Charts

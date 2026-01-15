@@ -51,8 +51,80 @@ app.get('/api/result/:id', (req, res) => {
   const workDir = path.join(outputsDir, workId)
   const analysisPath = path.join(workDir, 'analysis.json')
   if (!fs.existsSync(analysisPath)) return res.status(404).json({ error: 'not_found' })
+
+  function getDateKey(iso) {
+    if (!iso) return null
+    return iso.slice(0, 10)
+  }
+
+  function buildDailyRanking(targetId, targetSpeed, targetDateKey) {
+    if (!targetDateKey) return null
+    const entries = []
+    const dirs = fs.readdirSync(outputsDir, { withFileTypes: true }).filter(d => d.isDirectory())
+    for (const dirent of dirs) {
+      const id = dirent.name
+      const p = path.join(outputsDir, id, 'analysis.json')
+      if (!fs.existsSync(p)) continue
+      try {
+        const raw = JSON.parse(fs.readFileSync(p, 'utf8'))
+        let createdAt = raw.created_at
+        if (!createdAt) {
+          const st = fs.statSync(p)
+          createdAt = st.mtime.toISOString()
+        }
+        const key = getDateKey(createdAt)
+        if (key !== targetDateKey) continue
+        const speed = Number(raw?.analysis?.speed_kmh || 0)
+        if (!Number.isFinite(speed) || speed <= 0) continue
+        entries.push({ id, speed_kmh: speed })
+      } catch {
+      }
+    }
+    if (entries.length === 0) return null
+    entries.sort((a, b) => b.speed_kmh - a.speed_kmh)
+    const myIndex = entries.findIndex(e => e.id === targetId)
+    const myRank = myIndex === -1 ? null : myIndex + 1
+    const total = entries.length
+
+    let baseList
+    if (myRank && myRank <= 10) {
+      baseList = entries.slice(0, 10)
+    } else {
+      baseList = entries.slice(0, 9)
+      if (myIndex === -1 && Number.isFinite(targetSpeed) && targetSpeed > 0) {
+        baseList.push({ id: targetId, speed_kmh: targetSpeed })
+      } else if (myIndex >= 0 && !baseList.some(e => e.id === targetId)) {
+        baseList.push(entries[myIndex])
+      }
+    }
+
+    const top = baseList.map(item => {
+      const idx = entries.findIndex(e => e.id === item.id)
+      return {
+        id: item.id,
+        rank: idx === -1 ? null : idx + 1,
+        speed_kmh: item.speed_kmh,
+        is_you: item.id === targetId
+      }
+    })
+
+    return {
+      date: targetDateKey,
+      total_today: total,
+      my_speed_kmh: targetSpeed,
+      my_rank: myRank,
+      top
+    }
+  }
+
   try {
     const data = JSON.parse(fs.readFileSync(analysisPath, 'utf8'))
+    const createdAt = data.created_at || fs.statSync(analysisPath).mtime.toISOString()
+    const dateKey = getDateKey(createdAt)
+    const mySpeed = Number(data?.analysis?.speed_kmh || 0)
+    const rankings = buildDailyRanking(workId, mySpeed, dateKey)
+    if (rankings) data.rankings = rankings
+    if (!data.created_at) data.created_at = createdAt
     res.json(data)
   } catch (e) {
     res.status(500).json({ error: 'read_failed' })
@@ -123,6 +195,7 @@ app.post('/api/analyze', upload.single('video'), async (req, res) => {
     const resultData = {
       id: workId,
       analysis,
+      created_at: new Date().toISOString(),
       video_url: videoUrl,
       qr_image_path: qrPath,
       qr_url: qrUrl
