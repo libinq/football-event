@@ -64,10 +64,14 @@
     /* Grid Layout */
     .dashboard {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 32px;
+      grid-template-columns: 1fr 1fr 1fr; /* 3 Columns for compactness */
+      gap: 20px;
+      height: 100%;
     }
-    @media (max-width: 900px) {
+    @media (max-width: 1023px) {
+      .dashboard { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 768px) {
       .dashboard { grid-template-columns: 1fr; }
     }
 
@@ -77,24 +81,17 @@
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
       border: 1px solid var(--glass-border);
-      border-radius: 24px;
-      padding: 32px;
-      margin-bottom: 32px;
+      border-radius: 16px; /* Smaller radius */
+      padding: 20px; /* Smaller padding */
+      margin-bottom: 20px;
       box-shadow: var(--card-shadow);
-      transition: transform 0.3s ease;
-    }
-    .card:hover {
-      transform: translateY(-4px);
+      display: flex;
+      flex-direction: column;
     }
     .card h2 {
-      margin-top: 0;
-      font-size: 1.1rem;
-      color: var(--accent);
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      margin-bottom: 24px;
-      border-bottom: 1px solid var(--glass-border);
-      padding-bottom: 12px;
+      font-size: 1rem; /* Smaller title */
+      margin-bottom: 16px;
+      padding-bottom: 8px;
     }
 
     /* Stats Grid */
@@ -261,18 +258,120 @@
       border-left: 4px solid var(--accent);
     }
 
-    body.pdf-mode {
-      background: #f3f4f6;
-      backdrop-filter: none;
+    @media (min-width: 1024px) {
+      body:not(.pdf-mode) {
+        height: 100vh;
+        overflow: hidden;
+      }
+      body:not(.pdf-mode) .container {
+        height: 100vh;
+        max-height: 100vh;
+        padding: 24px 24px;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+      }
+      body:not(.pdf-mode) header {
+        margin-bottom: 24px;
+        padding-bottom: 16px;
+        flex-shrink: 0;
+      }
+      body:not(.pdf-mode) .dashboard {
+        flex: 1;
+        min-height: 0;
+      }
+      body:not(.pdf-mode) .col-left,
+      body:not(.pdf-mode) .col-right {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+        min-height: 0;
+        overflow-y: auto;
+        padding-right: 8px;
+      }
+      body:not(.pdf-mode) .card {
+        margin-bottom: 0;
+      }
     }
+
+    @media (min-width: 1024px) {
+      body:not(.pdf-mode) {
+        height: 100vh;
+        overflow: hidden;
+      }
+      body:not(.pdf-mode) .container {
+        height: 100vh;
+        max-height: 100vh;
+        padding: 20px;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+      }
+      body:not(.pdf-mode) header {
+        margin-bottom: 16px;
+        padding-bottom: 12px;
+        flex-shrink: 0;
+      }
+      body:not(.pdf-mode) .dashboard {
+        flex: 1;
+        min-height: 0;
+        gap: 16px;
+      }
+      body:not(.pdf-mode) .col-1,
+      body:not(.pdf-mode) .col-2,
+      body:not(.pdf-mode) .col-3 {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        min-height: 0;
+        /* Allow columns to scroll internally if content overflows, but try to fit */
+        overflow-y: hidden; 
+      }
+      /* If screen is too short, allow scroll */
+      @media (max-height: 800px) {
+        body:not(.pdf-mode) .col-1,
+        body:not(.pdf-mode) .col-2,
+        body:not(.pdf-mode) .col-3 {
+          overflow-y: auto;
+        }
+      }
+      body:not(.pdf-mode) .card {
+        margin-bottom: 0;
+      }
+    }
+
     body.pdf-mode .dashboard {
       grid-template-columns: 1fr;
+      gap: 16px;
     }
     body.pdf-mode .btn {
       display: none;
     }
     body.pdf-mode .share-export {
       display: none;
+    }
+    body.pdf-mode .card {
+      padding: 16px;
+      margin-bottom: 16px;
+      border-radius: 16px;
+    }
+    body.pdf-mode h1 {
+      font-size: 1.6rem;
+    }
+    body.pdf-mode .card h2 {
+      font-size: 0.95rem;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+    }
+    body.pdf-mode .stat-value {
+      font-size: 1.6rem;
+    }
+    body.pdf-mode .player-name {
+      font-size: 2.1rem;
+    }
+    body.pdf-mode .coach-summary {
+      font-size: 1rem;
+      padding: 16px;
     }
   </style>
 </head>
@@ -286,106 +385,109 @@
     <div id="loading" class="loading">Loading Analysis Results...</div>
 
     <div id="content" class="dashboard" style="display:none">
-      <!-- Left Column: Data & Charts -->
-      <div class="col-left">
+      <!-- Column 1: Speed & Rankings -->
+      <div class="col-1">
         <!-- Daily Ranking -->
-        <div class="card">
+        <div class="card" style="flex: 1;">
           <h2 id="rankingTitle">Speed Ranking</h2>
-          <div id="rankingSummary" style="margin-bottom:16px; color: var(--text-muted); font-size:0.95rem;"></div>
-          <table id="rankingTable" style="width:100%; border-collapse:collapse; font-size:0.9rem;">
-            <thead>
-              <tr style="color: var(--text-muted); text-align:left;">
-                <th style="padding:8px 4px;">Rank</th>
-                <th style="padding:8px 4px;">Speed (km/h)</th>
-                <th style="padding:8px 4px;">You</th>
-              </tr>
-            </thead>
-            <tbody id="rankingTableBody"></tbody>
-          </table>
+          <div id="rankingSummary" style="margin-bottom:12px; color: var(--text-muted); font-size:0.85rem;"></div>
+          <div style="flex: 1; overflow-y: auto;">
+            <table id="rankingTable" style="width:100%; border-collapse:collapse; font-size:0.85rem;">
+              <thead>
+                <tr style="color: var(--text-muted); text-align:left;">
+                  <th style="padding:6px 4px;">Rank</th>
+                  <th style="padding:6px 4px;">Speed</th>
+                  <th style="padding:6px 4px;">Player</th>
+                </tr>
+              </thead>
+              <tbody id="rankingTableBody"></tbody>
+            </table>
+          </div>
         </div>
 
         <!-- Speed Comparison Chart -->
-        <div class="card">
+        <div class="card" style="height: 240px;">
           <h2>Speed Comparison</h2>
-          <div class="comparison-chart-container">
+          <div class="comparison-chart-container" style="height: 100%;">
             <canvas id="speedChart"></canvas>
           </div>
         </div>
+      </div>
 
+      <!-- Column 2: Posture & Match -->
+      <div class="col-2">
         <!-- Posture Chart -->
         <div class="card">
           <h2>Posture Analysis</h2>
-          <div style="height:250px; display:flex; justify-content:center;">
+          <div style="height:180px; display:flex; justify-content:center;">
              <canvas id="postureChart"></canvas>
           </div>
-          <div style="margin-top:16px; padding:14px; border-radius:10px; background:rgba(255,255,255,0.04); color:#cbd5e1; line-height:1.7;">
-            <div style="font-weight:700; color:#10b981; margin-bottom:6px;">Summary</div>
+          <div style="margin-top:12px; padding:12px; border-radius:10px; background:rgba(255,255,255,0.04); color:#cbd5e1; line-height:1.5; font-size: 0.9rem;">
+            <div style="font-weight:700; color:#10b981; margin-bottom:4px;">Coach Summary</div>
             <div id="postureSummary">-</div>
+          </div>
+        </div>
+
+        <!-- Player Similarity -->
+        <div class="card" style="flex: 1;">
+          <h2>Pro Player Match</h2>
+          <div class="player-match" style="display: flex; flex-direction: column; height: 100%;">
+            <div class="player-name" id="playerName" style="font-size: 2rem; margin: 10px 0;">Unknown</div>
+            <div style="flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 12px; margin-bottom: 12px;">
+              <img id="playerImg" class="player-img" src="" alt="Player Match" style="width: 100%; height: 100%; object-fit: cover; max-height: 200px;">
+            </div>
+            <div class="player-desc" id="playerReason" style="font-size: 0.9rem; padding: 12px; margin-top: 0;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Column 3: Metrics & Video -->
+      <div class="col-3">
+         <!-- Key Metrics -->
+        <div class="card">
+          <h2>Performance Metrics</h2>
+          <div class="stats-grid" style="gap: 12px; margin-bottom: 12px;">
+            <div class="stat-box" style="padding: 12px;">
+              <div class="stat-value" id="speedVal" style="font-size: 1.8rem;">-</div>
+              <div class="stat-label" style="font-size: 0.75rem;">Speed (km/h)</div>
+            </div>
+            <div class="stat-box" style="padding: 12px;">
+              <div class="stat-value" id="forceVal" style="font-size: 1.8rem;">-</div>
+              <div class="stat-label" style="font-size: 0.75rem;">Force (N)</div>
+            </div>
+            <div class="stat-box" style="padding: 12px;">
+              <div class="stat-value" id="scoreVal" style="font-size: 1.8rem;">-</div>
+              <div class="stat-label" style="font-size: 0.75rem;">Posture</div>
+            </div>
+            <div class="stat-box" style="padding: 12px;">
+              <div class="stat-value" id="confVal" style="font-size: 1.8rem;">-</div>
+              <div class="stat-label" style="font-size: 0.75rem;">Confidence</div>
+            </div>
+          </div>
+          <div style="font-style: italic; color: #cbd5e1; font-size: 0.85rem;" id="postureNotes"></div>
+        </div>
+
+        <!-- Final Video -->
+        <div class="card" style="flex: 1; min-height: 200px;">
+          <h2>Final Result</h2>
+          <div class="video-container" style="flex: 1; display: flex; align-items: center; background: #000;">
+            <video id="finalVideo" controls autoplay loop muted playsinline style="height: 100%; width: 100%; object-fit: contain;"></video>
           </div>
         </div>
 
         <!-- Scan & Share -->
         <div class="card">
-          <h2>Scan and Share</h2>
-          <div class="qr-container">
-            <img id="qrImg" src="" alt="QR">
-            <div class="qr-text">
-              Scan to share this analysis.<br>
+          <div class="qr-container" style="margin-top: 0; padding: 12px; gap: 12px;">
+            <img id="qrImg" src="" alt="QR" style="width: 60px; height: 60px;">
+            <div class="qr-text" style="font-size: 0.85rem;">
+              Scan to share.<br>
               <a id="videoLink" href="#" target="_blank" style="color:#10b981">Direct Link</a>
             </div>
           </div>
-          <div class="share-row">
-            <span class="share-label">Share:</span>
-            <a id="shareFacebook" class="share-icon" target="_blank" rel="noopener noreferrer" aria-label="Share on Facebook">f</a>
-            <a id="shareX" class="share-icon" target="_blank" rel="noopener noreferrer" aria-label="Share on X">X</a>
-            <a id="shareLinkedIn" class="share-icon" target="_blank" rel="noopener noreferrer" aria-label="Share on LinkedIn">in</a>
-            <button id="exportPdf" class="share-export" type="button">Export PDF</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Right Column: Visuals & Match -->
-      <div class="col-right">
-        <!-- Player Similarity -->
-        <div class="card">
-          <h2>Pro Player Match</h2>
-          <div class="player-match">
-            <div class="player-name" id="playerName">Unknown</div>
-            <!-- Placeholder image logic in JS -->
-            <img id="playerImg" class="player-img" src="" alt="Player Match">
-            <div class="player-desc" id="playerReason"></div>
-          </div>
-        </div>
-
-        <!-- Key Metrics -->
-        <div class="card">
-          <h2>Performance Metrics</h2>
-          <div class="stats-grid">
-            <div class="stat-box">
-              <div class="stat-value" id="speedVal">-</div>
-              <div class="stat-label">Shot Speed (km/h)</div>
-            </div>
-            <div class="stat-box">
-              <div class="stat-value" id="forceVal">-</div>
-              <div class="stat-label">Contact Force (N)</div>
-            </div>
-            <div class="stat-box">
-              <div class="stat-value" id="scoreVal">-</div>
-              <div class="stat-label">Posture Score</div>
-            </div>
-            <div class="stat-box">
-              <div class="stat-value" id="confVal">-</div>
-              <div class="stat-label">Confidence</div>
-            </div>
-          </div>
-          <div style="margin-top: 16px; font-style: italic; color: #cbd5e1;" id="postureNotes"></div>
-        </div>
-
-        <!-- Final Video -->
-        <div class="card">
-          <h2>Final Result Video</h2>
-          <div class="video-container">
-            <video id="finalVideo" controls autoplay loop muted playsinline></video>
+          <div class="share-row" style="margin-top: 8px;">
+            <a id="shareFacebook" class="share-icon" target="_blank">f</a>
+            <a id="shareX" class="share-icon" target="_blank">X</a>
+            <button id="exportPdf" class="share-export" type="button" style="padding: 4px 10px; font-size: 0.8rem;">PDF</button>
           </div>
         </div>
       </div>
@@ -408,27 +510,6 @@
       return '';
     }
     const API_BASE = getApiBase();
-
-    // Player images map (simple fallback)
-    const playerImages = {
-      'messi': 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Lionel_Messi_20180626.jpg/400px-Lionel_Messi_20180626.jpg',
-      'ronaldo': 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Cristiano_Ronaldo_2018.jpg/400px-Cristiano_Ronaldo_2018.jpg',
-      'rooney': 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/Wayne_Rooney_Euro_2012_vs_Italy_2.jpg/400px-Wayne_Rooney_Euro_2012_vs_Italy_2.jpg',
-      'beckham': 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/22/David_Beckham_2011.jpg/400px-David_Beckham_2011.jpg',
-      'haaland': 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/07/Erling_Haaland_2023.jpg/400px-Erling_Haaland_2023.jpg',
-      'default': 'https://placehold.co/600x400/1e293b/10b981?text=Pro+Player+Match'
-    };
-
-    function getPlayerImage(name) {
-      if (!name) return playerImages.default;
-      const lower = name.toLowerCase();
-      if (lower.includes('messi')) return playerImages.messi;
-      if (lower.includes('ronaldo')) return playerImages.ronaldo;
-      if (lower.includes('rooney')) return playerImages.rooney;
-      if (lower.includes('beckham')) return playerImages.beckham;
-      if (lower.includes('haaland')) return playerImages.haaland;
-      return playerImages.default;
-    }
 
     async function loadData() {
       if (!id) {
@@ -464,7 +545,9 @@
       const pName = a.similar_player || 'Unknown Pro';
       document.getElementById('playerName').textContent = pName;
       document.getElementById('playerReason').textContent = a.similarity_reason || 'No specific similarity notes provided.';
-      document.getElementById('playerImg').src = getPlayerImage(pName);
+      
+      const imgEl = document.getElementById('playerImg');
+      imgEl.src = '/avatars/star_player.png';
 
       // Video
       if (data.video_url) {

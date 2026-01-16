@@ -1,7 +1,35 @@
 import fetch from 'node-fetch'
 
 export async function analyzeFrames(frames, { model, token }) {
-  return {
+  const headers = {
+    'Content-Type': 'application/json',
+    'Authorization': token ? `Bearer ${token}` : ''
+  }
+  const images = await Promise.all(frames.map(async p => {
+    const data = await import('fs').then(m => m.readFileSync(p))
+    const base64 = data.toString('base64')
+    return { type: 'image_url', image_url: { url: `data:image/png;base64,${base64}` } }
+  }))
+  
+  // Note: OpenRouter/OpenAI vision usually expects content array with type='image_url' and image_url object.
+  // The previous code had { type: 'input_image', image_url: ... } which might be specific to some models but standard is type='image_url'.
+  // I will use the standard format.
+
+  const prompt = [
+    { role: 'system', content: 'You are a football video analysis assistant. From multiple consecutive frames, identify the ball position and displacement per frame, estimate shot speed (m/s), estimate contact force at impact (N), and assess whether the shooting posture is standard, returning a 0–100 score with notes. Also identify which famous football player\'s shooting style is most similar to the user\'s (e.g. Messi, Ronaldo, Beckham, Rooney, Haaland, etc.) and provide a short reason in English. Additionally, provide a "posture_summary" in English: a 2-4 sentence encouraging coach-like summary, highlighting strengths first, then gently suggesting 1-2 improvements. Finally, provide a "cartoon_prompt": a detailed English prompt to generate a 3D Pixar-style cartoon image of this famous player. IMPORTANT: The prompt MUST start with "3D Pixar-style cartoon of [Player Name]..." and include key visual features of that specific player (e.g. hair style, jersey number if iconic, build) performing the specific shooting action seen in the video, with a dynamic stadium background. Do NOT invent a generic player; use the specific famous player\'s name and likeness. Assume ball mass 0.45 kg, contact time 0.012 s, ball diameter 0.22 m for pixel calibration. Return JSON only, no explanation.' },
+    { role: 'user', content: [
+      { type: 'text', text: 'These are consecutive frames extracted from a video. Analyze and return JSON with schema: {"speed_mps":number,"speed_kmh":number,"contact_force_N":number,"posture_score":number,"posture_notes":string,"posture_summary":string,"confidence":number,"similar_player":string,"similarity_reason":string,"cartoon_prompt":string}' },
+      ...images
+    ] }
+  ]
+  const body = {
+    model,
+    messages: prompt,
+    temperature: 0.2,
+    response_format: { type: "json_object" }
+  }
+  
+  const defaultResult = {
     speed_mps: 25,
     speed_kmh: 90,
     contact_force_N: 900,
@@ -10,77 +38,77 @@ export async function analyzeFrames(frames, { model, token }) {
     posture_summary: 'Your shooting form shows great potential with solid balance and power transfer! Keep your focus on the ball impact point to improve accuracy even further. Consistent practice will help you refine your technique—keep up the great work!',
     confidence: 0.3,
     similar_player: 'Lionel Messi',
-    similarity_reason: 'Balanced posture and clean follow-through similar to Messi.'
+    similarity_reason: 'Balanced posture and clean follow-through similar to Messi.',
+    cartoon_prompt: '3D Pixar-style cartoon of Lionel Messi shooting a football with power in a crowded stadium, dynamic angle, bright colors'
   }
-  const headers = {
-    'Content-Type': 'application/json',
-    'Authorization': token ? `Bearer ${token}` : ''
-  }
-  const images = await Promise.all(frames.map(async p => {
-    const data = await import('fs').then(m => m.readFileSync(p))
-    const base64 = data.toString('base64')
-    return { type: 'input_image', image_url: `data:image/png;base64,${base64}` }
-  }))
-  const prompt = [
-    { role: 'system', content: 'You are a football video analysis assistant. From multiple consecutive frames, identify the ball position and displacement per frame, estimate shot speed (m/s), estimate contact force at impact (N), and assess whether the shooting posture is standard, returning a 0–100 score with notes. Also identify which famous football player\'s shooting style is most similar to the user\'s (e.g. Messi, Ronaldo, Beckham, Rooney, Haaland, etc.) and provide a short reason in English. Additionally, provide a "posture_summary" in English: a 2-4 sentence encouraging coach-like summary, highlighting strengths first, then gently suggesting 1-2 improvements. Assume ball mass 0.45 kg, contact time 0.012 s, ball diameter 0.22 m for pixel calibration. Return JSON only, no explanation.' },
-    { role: 'user', content: [
-      { type: 'text', text: 'These are consecutive frames extracted from a video. Analyze and return JSON with schema: {"schema":{"speed_mps":number,"speed_kmh":number,"contact_force_N":number,"posture_score":number,"posture_notes":string,"posture_summary":string,"confidence":number,"similar_player":string,"similarity_reason":string}}' },
-      ...images
-    ] }
-  ]
-  const body = {
-    model,
-    messages: prompt,
-    temperature: 0.2
-  }
+
   try {
     const resp = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers,
       body: JSON.stringify(body)
     })
+    
     if (!resp.ok) {
-      return {
-        speed_mps: 25,
-        speed_kmh: 90,
-        contact_force_N: 900,
-        posture_score: 70,
-        posture_notes: 'Default estimation',
-        posture_summary: 'Your shooting form shows great potential with solid balance and power transfer! Keep your focus on the ball impact point to improve accuracy even further. Consistent practice will help you refine your technique—keep up the great work!',
-        confidence: 0.3,
-        similar_player: 'Lionel Messi',
-        similarity_reason: 'Balanced posture and clean follow-through similar to Messi.'
-      }
+      console.error('OpenRouter API error:', resp.status, await resp.text())
+      return defaultResult
     }
+    
     const data = await resp.json()
     const content = data?.choices?.[0]?.message?.content || ''
     try {
-      const parsed = JSON.parse(content)
-      return parsed
-    } catch {
-      return {
-        speed_mps: 25,
-        speed_kmh: 90,
-        contact_force_N: 900,
-        posture_score: 70,
-        posture_notes: 'Default estimation',
-        posture_summary: 'Your shooting form shows great potential with solid balance and power transfer! Keep your focus on the ball impact point to improve accuracy even further. Consistent practice will help you refine your technique—keep up the great work!',
-        confidence: 0.3,
-        similar_player: 'Lionel Messi',
-        similarity_reason: 'Balanced posture and clean follow-through similar to Messi.'
-      }
+      // Remove markdown code blocks if present
+      const cleanContent = content.replace(/```json/g, '').replace(/```/g, '').trim()
+      const parsed = JSON.parse(cleanContent)
+      return { ...defaultResult, ...parsed }
+    } catch (e) {
+      console.error('JSON parse error:', e, content)
+      return defaultResult
     }
-  } catch {
-    return {
-      speed_mps: 25,
-      speed_kmh: 90,
-      contact_force_N: 900,
-      posture_score: 70,
-      posture_notes: 'Default estimation',
-      posture_summary: 'Your shooting form shows great potential with solid balance and power transfer! Keep your focus on the ball impact point to improve accuracy even further. Consistent practice will help you refine your technique—keep up the great work!',
-      confidence: 0.3,
-      similar_player: 'Lionel Messi',
-      similarity_reason: 'Balanced posture and clean follow-through similar to Messi.'
+  } catch (e) {
+    console.error('Fetch error:', e)
+    return defaultResult
+  }
+}
+
+export async function generateCartoon({ prompt, model, token }) {
+  if (!prompt) return null
+  
+  const headers = {
+    'Content-Type': 'application/json',
+    'Authorization': token ? `Bearer ${token}` : '',
+    'HTTP-Referer': 'https://football-event.local', // Required by OpenRouter
+    'X-Title': 'Football Event'
+  }
+
+  // OpenRouter image generation endpoint
+  // Note: If OpenRouter does not support v1/images/generations, this will fail gracefully.
+  // We assume the user has configured a model that supports image generation.
+  const body = {
+    model: model,
+    prompt: prompt,
+    n: 1,
+    size: '1024x1024'
+  }
+
+  try {
+    console.log(`Generating cartoon with model: ${model}`)
+    const resp = await fetch('https://openrouter.ai/api/v1/images/generations', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body)
+    })
+
+    if (!resp.ok) {
+      console.error('OpenRouter Image API error:', resp.status, await resp.text())
+      return null
     }
+
+    const data = await resp.json()
+    // Standard OpenAI format: { data: [{ url: "..." }] }
+    return data?.data?.[0]?.url || null
+  } catch (e) {
+    console.error('Image Generation Fetch error:', e)
+    return null
   }
 }

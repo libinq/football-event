@@ -1,6 +1,7 @@
 import dotenv from 'dotenv'
 import express from 'express'
 import multer from 'multer'
+import fetch from 'node-fetch'
 import path from 'path'
 import fs from 'fs'
 import { fileURLToPath } from 'url'
@@ -8,7 +9,7 @@ import { v4 as uuidv4 } from 'uuid'
 import ffmpeg from 'fluent-ffmpeg'
 import ffmpegInstaller from '@ffmpeg-installer/ffmpeg'
 import ffprobeInstaller from '@ffprobe-installer/ffprobe'
-import { analyzeFrames } from './services/openrouter.js'
+import { analyzeFrames, generateCartoon } from './services/openrouter.js'
 import { sampleFrames, buildSummaryPoster, buildAnimatedCompare, mergeIntroAndOverlay } from './services/pipeline.js'
 import { generateQRCode } from './services/qrcode.js'
 
@@ -133,7 +134,8 @@ app.get('/api/result/:id', (req, res) => {
 
 app.post('/api/analyze', upload.single('video'), async (req, res) => {
   try {
-    const model = process.env.OPENROUTER_MODEL || 'openai/gpt-4.1-mini'
+    const model = process.env.OPENROUTER_MODEL || 'openai/gpt-4o-mini'
+    const cartoonModel = process.env.OPENROUTER_CARTOON_MODEL || 'openai/dall-e-3'
     const token = process.env.OPENROUTER_API_KEY || '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'
     const inputPath = req.file?.path
     if (!inputPath) return res.status(400).json({ error: 'no_video' })
@@ -151,6 +153,19 @@ app.post('/api/analyze', upload.single('video'), async (req, res) => {
     if (frameFiles.length === 0) return res.status(500).json({ error: 'no_frames' })
     console.log('start analyzeFrames', frameFiles.length)
     const analysis = await analyzeFrames(frameFiles.slice(0, 12), { model, token })
+    
+    // Start cartoon generation in parallel with video processing
+    let cartoonPromise = null;
+    /* User requested to skip real-time generation and use default Messi avatars
+    if (analysis.cartoon_prompt) {
+      console.log('start generateCartoon async', cartoonModel)
+      cartoonPromise = generateCartoon({
+        prompt: analysis.cartoon_prompt,
+        model: cartoonModel,
+        token
+      })
+    }
+    */
     
     const allComparisons = [
       { label: 'Usain Bolt', speed_kmh: 44 },
@@ -184,6 +199,35 @@ app.post('/api/analyze', upload.single('video'), async (req, res) => {
     fs.copyFileSync(outputVideoPath, publicVideoPath)
     const urlBase = process.env.PUBLIC_BASE_URL || 'http://localhost:3000'
     const videoUrl = `${urlBase}/videos/${publicId}.mp4`
+
+    // Resolve cartoon generation and save
+    /* User requested to skip real-time generation
+    if (cartoonPromise) {
+      try {
+        console.log('waiting for cartoon generation...')
+        const tempCartoonUrl = await cartoonPromise
+        if (tempCartoonUrl) {
+           console.log('cartoon generated, downloading...', tempCartoonUrl)
+           const resp = await fetch(tempCartoonUrl)
+           if (resp.ok) {
+              const arrayBuffer = await resp.arrayBuffer()
+              const buffer = Buffer.from(arrayBuffer)
+              const publicCartoonDir = path.join(publicDir, 'cartoons')
+              if (!fs.existsSync(publicCartoonDir)) fs.mkdirSync(publicCartoonDir, { recursive: true })
+              const cartoonFilename = `${publicId}.png`
+              const localPath = path.join(publicCartoonDir, cartoonFilename)
+              fs.writeFileSync(localPath, buffer)
+              
+              analysis.cartoon_url = `${urlBase}/cartoons/${cartoonFilename}`
+              console.log('cartoon saved to', localPath)
+           }
+        }
+      } catch (e) {
+        console.error('Error handling cartoon generation:', e)
+      }
+    }
+    */
+
     const qrPath = path.join(workDir, 'qr.png')
     await generateQRCode(videoUrl, qrPath)
     const publicQrDir = path.join(publicDir, 'qrcodes')
