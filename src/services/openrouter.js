@@ -16,9 +16,9 @@ export async function analyzeFrames(frames, { model, token }) {
   // I will use the standard format.
 
   const prompt = [
-    { role: 'system', content: 'You are a football video analysis assistant. From multiple consecutive frames, identify the ball position and displacement per frame, estimate shot speed (m/s), estimate contact force at impact (N), and assess whether the shooting posture is standard, returning a 0–100 score with notes. Also identify which famous football player\'s shooting style is most similar to the user\'s (e.g. Messi, Ronaldo, Beckham, Rooney, Haaland, etc.) and provide a short reason in English. Additionally, provide a "posture_summary" in English: a 2-4 sentence encouraging coach-like summary, highlighting strengths first, then gently suggesting 1-2 improvements. Finally, provide a "cartoon_prompt": a detailed English prompt to generate a 3D Pixar-style cartoon image of this famous player. IMPORTANT: The prompt MUST start with "3D Pixar-style cartoon of [Player Name]..." and include key visual features of that specific player (e.g. hair style, jersey number if iconic, build) performing the specific shooting action seen in the video, with a dynamic stadium background. Do NOT invent a generic player; use the specific famous player\'s name and likeness. Assume ball mass 0.45 kg, contact time 0.012 s, ball diameter 0.22 m for pixel calibration. Return JSON only, no explanation.' },
+    { role: 'system', content: 'You are a football video analysis assistant. From multiple consecutive frames, identify the ball position and displacement per frame, estimate shot speed (m/s), estimate contact force at impact (N), and assess whether the shooting posture is standard, returning a 0–100 score with notes. Additionally, provide a "posture_summary" in English: a 2-4 sentence encouraging coach-like summary, highlighting strengths first, then gently suggesting 1-2 improvements. Assume ball mass 0.45 kg, contact time 0.012 s, ball diameter 0.22 m for pixel calibration. Return JSON only, no explanation.' },
     { role: 'user', content: [
-      { type: 'text', text: 'These are consecutive frames extracted from a video. Analyze and return JSON with schema: {"speed_mps":number,"speed_kmh":number,"contact_force_N":number,"posture_score":number,"posture_notes":string,"posture_summary":string,"confidence":number,"similar_player":string,"similarity_reason":string,"cartoon_prompt":string}' },
+      { type: 'text', text: 'These are consecutive frames extracted from a video. Analyze and return JSON with schema: {"speed_mps":number,"speed_kmh":number,"contact_force_N":number,"posture_score":number,"posture_notes":string,"posture_summary":string,"confidence":number}' },
       ...images
     ] }
   ]
@@ -36,10 +36,7 @@ export async function analyzeFrames(frames, { model, token }) {
     posture_score: 70,
     posture_notes: 'Default estimation',
     posture_summary: 'Your shooting form shows great potential with solid balance and power transfer! Keep your focus on the ball impact point to improve accuracy even further. Consistent practice will help you refine your technique—keep up the great work!',
-    confidence: 0.3,
-    similar_player: 'Lionel Messi',
-    similarity_reason: 'Balanced posture and clean follow-through similar to Messi.',
-    cartoon_prompt: '3D Pixar-style cartoon of Lionel Messi shooting a football with power in a crowded stadium, dynamic angle, bright colors'
+    confidence: 0.3
   }
 
   try {

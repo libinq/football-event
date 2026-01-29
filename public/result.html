@@ -130,39 +130,8 @@
       width: 100%;
     }
 
-    /* Similarity Section */
-    .player-match {
-      text-align: center;
-      margin-bottom: 24px;
-    }
-    .player-name {
-      font-size: 3rem;
-      font-weight: 800;
-      background: linear-gradient(45deg, #34d399, #3b82f6);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      margin: 20px 0;
-      text-shadow: 0 10px 20px rgba(0,0,0,0.2);
-    }
-    .player-img {
-      width: 100%;
-      max-width: 320px;
-      height: auto;
-      border-radius: 20px;
-      margin: 0 auto;
-      display: block;
-      box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5);
-      border: 4px solid rgba(255,255,255,0.1);
-    }
-    .player-desc {
-      color: var(--text-muted);
-      margin-top: 24px;
-      line-height: 1.8;
-      font-size: 1.15rem;
-      background: rgba(0,0,0,0.2);
-      padding: 20px;
-      border-radius: 16px;
-    }
+    /* Similarity Section - Removed */
+
 
     /* Video & QR */
     .video-container {
@@ -414,36 +383,9 @@
         </div>
       </div>
 
-      <!-- Column 2: Posture & Match -->
+      <!-- Column 2: Metrics & Posture -->
       <div class="col-2">
-        <!-- Posture Chart -->
-        <div class="card">
-          <h2>Posture Analysis</h2>
-          <div style="height:180px; display:flex; justify-content:center;">
-             <canvas id="postureChart"></canvas>
-          </div>
-          <div style="margin-top:12px; padding:12px; border-radius:10px; background:rgba(255,255,255,0.04); color:#cbd5e1; line-height:1.5; font-size: 0.9rem;">
-            <div style="font-weight:700; color:#10b981; margin-bottom:4px;">Coach Summary</div>
-            <div id="postureSummary">-</div>
-          </div>
-        </div>
-
-        <!-- Player Similarity -->
-        <div class="card" style="flex: 1;">
-          <h2>Pro Player Match</h2>
-          <div class="player-match" style="display: flex; flex-direction: column; height: 100%;">
-            <div class="player-name" id="playerName" style="font-size: 2rem; margin: 10px 0;">Unknown</div>
-            <div style="flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 12px; margin-bottom: 12px;">
-              <img id="playerImg" class="player-img" src="" alt="Player Match" style="width: 100%; height: 100%; object-fit: cover; max-height: 200px;">
-            </div>
-            <div class="player-desc" id="playerReason" style="font-size: 0.9rem; padding: 12px; margin-top: 0;"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Column 3: Metrics & Video -->
-      <div class="col-3">
-         <!-- Key Metrics -->
+        <!-- Key Metrics -->
         <div class="card">
           <h2>Performance Metrics</h2>
           <div class="stats-grid" style="gap: 12px; margin-bottom: 12px;">
@@ -467,10 +409,25 @@
           <div style="font-style: italic; color: #cbd5e1; font-size: 0.85rem;" id="postureNotes"></div>
         </div>
 
+        <!-- Posture Chart -->
+        <div class="card" style="flex: 1;">
+          <h2>Posture Analysis</h2>
+          <div style="height:180px; display:flex; justify-content:center;">
+             <canvas id="postureChart"></canvas>
+          </div>
+          <div style="margin-top:12px; padding:12px; border-radius:10px; background:rgba(255,255,255,0.04); color:#cbd5e1; line-height:1.5; font-size: 0.9rem;">
+            <div style="font-weight:700; color:#10b981; margin-bottom:4px;">Coach Summary</div>
+            <div id="postureSummary">-</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Column 3: Video & Share -->
+      <div class="col-3">
         <!-- Final Video -->
-        <div class="card" style="flex: 1; min-height: 200px;">
+        <div class="card" style="flex: 1; min-height: 300px;">
           <h2>Final Result</h2>
-          <div class="video-container" style="flex: 1; display: flex; align-items: center; background: #000;">
+          <div class="video-container" style="flex: 1; display: flex; align-items: center; background: #000; margin-top: 0; border: none;">
             <video id="finalVideo" controls autoplay loop muted playsinline style="height: 100%; width: 100%; object-fit: contain;"></video>
           </div>
         </div>
@@ -541,13 +498,12 @@
       document.getElementById('postureNotes').textContent = '"' + (a.posture_notes || 'No notes') + '"';
       document.getElementById('postureSummary').textContent = a.posture_summary || 'Your overall shooting form looks solid, with good balance and timing. To improve even more, focus on a stable plant foot and a smooth follow-through so that power and accuracy stay consistent over each attempt.';
 
-      // Player Match
-      const pName = a.similar_player || 'Unknown Pro';
-      document.getElementById('playerName').textContent = pName;
-      document.getElementById('playerReason').textContent = a.similarity_reason || 'No specific similarity notes provided.';
-      
-      const imgEl = document.getElementById('playerImg');
-      imgEl.src = '/avatars/star_player.png';
+      // Player Match Removed
+      // const pName = a.similar_player || 'Unknown Pro';
+      // document.getElementById('playerName').textContent = pName;
+      // document.getElementById('playerReason').textContent = a.similarity_reason || 'No specific similarity notes provided.';
+      // const imgEl = document.getElementById('playerImg');
+      // imgEl.src = '/avatars/star_player.png';
 
       // Video
       if (data.video_url) {
